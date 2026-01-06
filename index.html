@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Off-Axis 3D Display</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: sans-serif;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+        }
+
+        #start-btn {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: #ffffff;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #start-btn:hover {
+            background: #ccc;
+        }
+
+        #debug-video,
+        #debug-canvas {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 160px;
+            height: 120px;
+            z-index: 100;
+            opacity: 0.8;
+            transform: scaleX(-1);
+            border: 1px solid #333;
+            background: #000;
+            pointer-events: none;
+        }
+
+        #status {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #aaa;
+        }
+
+        #fullscreen-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            padding: 10px 15px;
+            font-size: 14px;
+            background: rgba(0, 255, 255, 0.2);
+            color: #00ffff;
+            border: 1px solid #00ffff;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: monospace;
+            transition: all 0.2s ease;
+        }
+
+        #fullscreen-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="overlay">
+        <h1>Off-Axis 3D Demo</h1>
+        <div id="status">Needs webcam access to track your head position.</div>
+        <button id="start-btn">ENTER 3D VIEW</button>
+    </div>
+
+    <!-- Hidden video for processing -->
+    <video id="debug-video" playsinline style="display:none"></video>
+    <!-- Visual feedback of tracking -->
+    <canvas id="debug-canvas"></canvas>
+
+    <div id="canvas-container"></div>
+
+    <!-- Fullscreen Button -->
+    <button id="fullscreen-btn">⛶ FULLSCREEN</button>
+
+    <!-- MediaPipe via traditional scripts (not ES modules) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <!-- dat.gui for controls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // Global variables for controls
+        let mainLight, ambientLight;
+        let mixer; // Animation Mixer
+
+        // --- GUI Controls ---
+        const params = {
+            currentModel: 'Original',
+            modelScale: 1.0,
+            modelRotY: 0.0,
+            modelZ: -5.0,
+            modelY: 0.0, // Added Y control
+            lightIntensity: 800,
+            ambientIntensity: 0.5,
+            gridSpeed: 1.0
+        };
+
+        // --- Configuration ---
+        const SCREEN_WIDTH_CM = 30.0;
+        const SCREEN_HEIGHT_CM = 20.0;
+        const BOX_DEPTH_CM = 80.0; // Deep virtual chamber
+
+        // Tracking constants
+        const DEFAULT_HEAD_Z = 60.0;
+        const NEAR = 0.5;
+        const FAR = 1000.0;
+
+        // --- State ---
+        const state = {
+            head: new THREE.Vector3(0, 0, DEFAULT_HEAD_Z),
+            targetHead: new THREE.Vector3(0, 0, DEFAULT_HEAD_Z),
+            trackingActive: false
+        };
+
+        // --- Setup Three.js ---
+        const container = document.getElementById('canvas-container');
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000); // Pure black for deep void
+
+        const camera = new THREE.Camera();
+        scene.add(camera);
+
+        // Global variables for controls
+        let gridUniforms; // For shader animation
+
+        // --- Environment: Deep Virtual Chamber ---
+        function createEnvironment() {
+            const group = new THREE.Group();
+            scene.add(group);
+
+            const w = SCREEN_WIDTH_CM;
+            const h = SCREEN_HEIGHT_CM;
+            const d = BOX_DEPTH_CM;
+
+            // 1. Custom Grid Geometry with VARIABLE DENSITY
+            // Denser near front (z=0), sparser toward back (z=-d)
+            const vertices = [];
+
+            // --- Floor & Ceiling (X-axis lines running into depth) ---
+            const stepX = 2.0; // X spacing
+            for (let x = -w / 2; x <= w / 2; x += stepX) {
+                vertices.push(x, -h / 2, 0); vertices.push(x, -h / 2, -d);
+                vertices.push(x, h / 2, 0); vertices.push(x, h / 2, -d);
+            }
+
+            // --- Floor/Ceiling Horizontals with VARIABLE Z spacing ---
+            // Use exponential spacing: denser near front
+            const numZLines = 20;
+            for (let i = 0; i <= numZLines; i++) {
+                // Exponential distribution: more lines near z=0
+                const t = i / numZLines;
+                const z = -d * Math.pow(t, 1.5); // Power curve for density falloff
+                vertices.push(-w / 2, -h / 2, z); vertices.push(w / 2, -h / 2, z);
+                vertices.push(-w / 2, h / 2, z); vertices.push(w / 2, h / 2, z);
+            }
+
+            // --- Walls (Verticals) with variable Z spacing ---
+            for (let i = 0; i <= numZLines; i++) {
+                const t = i / numZLines;
+                const z = -d * Math.pow(t, 1.5);
+                vertices.push(-w / 2, -h / 2, z); vertices.push(-w / 2, h / 2, z); // Left
+                vertices.push(w / 2, -h / 2, z); vertices.push(w / 2, h / 2, z);   // Right
+            }
+
+            // --- Back Wall ---
+            for (let x = -w / 2; x <= w / 2; x += stepX) {
+                vertices.push(x, -h / 2, -d); vertices.push(x, h / 2, -d);
+            }
+            for (let y = -h / 2; y <= h / 2; y += stepX) {
+                vertices.push(-w / 2, y, -d); vertices.push(w / 2, y, -d);
+            }
+
+            // --- Wall Horizontals (Left/Right) with variable Z spacing ---
+            for (let y = -h / 2; y <= h / 2; y += stepX) {
+                vertices.push(-w / 2, y, 0); vertices.push(-w / 2, y, -d); // Left
+                vertices.push(w / 2, y, 0); vertices.push(w / 2, y, -d);   // Right
+            }
+
+            const gridGeo = new THREE.BufferGeometry();
+            gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            gridUniforms = {
+                time: { value: 0 },
+                color: { value: new THREE.Color(0x00ffff) }
+            };
+
+            const shaderMat = new THREE.ShaderMaterial({
+                uniforms: gridUniforms,
+                vertexShader: `
+                    uniform float time;
+                    varying vec3 vPos;
+                    void main() {
+                        vPos = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform vec3 color;
+                    varying vec3 vPos;
+                    
+                    void main() {
+                        // Electric Pulse
+                        float pulseSpd = time * 2.0; 
+                        
+                        // Smooth sine wave for organic glow
+                        float sWave = sin(vPos.z * 0.1 + pulseSpd) * 0.5 + 0.5;
+                        
+                        // Base glow (brighter in foreground)
+                        float baseGlow = 0.3 + sWave * 0.7;
+                        
+                        // Strong distance fade for deep chamber effect
+                        // Objects far away (z << 0) fade to black
+                        float distFade = smoothstep(-80.0, 0.0, vPos.z);
+                        distFade = pow(distFade, 1.5); // Enhance contrast
+                        
+                        // Foreground boost
+                        float foregroundBoost = smoothstep(-20.0, 5.0, vPos.z) * 0.5;
+                        
+                        float finalAlpha = distFade * (baseGlow + foregroundBoost);
+                        
+                        gl_FragColor = vec4(color * (baseGlow + foregroundBoost), finalAlpha);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+
+            const gridLines = new THREE.LineSegments(gridGeo, shaderMat);
+            group.add(gridLines);
+
+            // 2. Solid dark walls
+            const boxGeo = new THREE.BoxGeometry(w, h, d);
+            boxGeo.translate(0, 0, -d / 2);
+            const wallMat = new THREE.MeshBasicMaterial({ color: 0x000205, side: THREE.BackSide });
+            const walls = new THREE.Mesh(boxGeo, wallMat);
+            group.add(walls);
+
+            // 3. Lighting
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            mainLight = new THREE.SpotLight(0xffffff, 1000);
+            mainLight.position.set(0, 20, 10);
+            mainLight.angle = Math.PI / 4;
+            mainLight.penumbra = 0.5;
+            mainLight.castShadow = true;
+            mainLight.shadow.bias = -0.0001;
+            scene.add(mainLight);
+
+            const rimLight = new THREE.PointLight(0x00ffff, 1, 50);
+            rimLight.position.set(0, -10, -10);
+            scene.add(rimLight);
+
+            return { pedestalTopY: -h / 2, pedestalZ: -d / 2 };
+        }
+
+        const envInfo = createEnvironment();
+
+        // --- Model Selection ---
+        const models = {
+            'Default': './models/default/scene.gltf'
+            // Add your custom models here:
+            // 'Model Name': './models/your-model-folder/scene.gltf',
+        };
+        params.currentModel = 'Default';
+
+        function setupControls() {
+            const gui = new dat.GUI();
+
+            const folderModel = gui.addFolder('Model Settings');
+            folderModel.add(params, 'currentModel', Object.keys(models)).name('Select Model').onChange(loadModel);
+            folderModel.add(params, 'modelScale', 0.1, 5.0).name('Scale').onChange(updateModelTransform);
+            folderModel.add(params, 'modelRotY', -Math.PI, Math.PI).name('Rotation Y').onChange(updateModelTransform);
+            folderModel.add(params, 'modelZ', -50, 5).name('Position Z').onChange(updateModelTransform);
+            folderModel.add(params, 'modelY', -20, 20).name('Position Y').onChange(updateModelTransform);
+            folderModel.open();
+
+            const folderLight = gui.addFolder('Lighting');
+            folderLight.add(params, 'lightIntensity', 0, 2000).name('Spot Intensity').onChange(val => {
+                if (mainLight) mainLight.intensity = val;
+            });
+            folderLight.add(params, 'ambientIntensity', 0, 2).name('Ambient').onChange(val => {
+                if (ambientLight) ambientLight.intensity = val;
+            });
+            folderLight.add(params, 'gridSpeed', 0, 5.0).name('Grid Speed');
+            folderLight.open();
+        }
+
+        // Helper to apply params
+        function updateModelTransform() {
+            if (!modelGroup || modelGroup.children.length === 0) return;
+
+            // We apply scale to the group, which contains the gltf model
+            modelGroup.scale.set(params.modelScale, params.modelScale, params.modelScale);
+
+            modelGroup.rotation.y = params.modelRotY;
+            modelGroup.position.z = params.modelZ;
+            modelGroup.position.y = params.modelY + envInfo.pedestalTopY;
+        }
+
+        const loader = new GLTFLoader();
+        let modelGroup = new THREE.Group();
+        scene.add(modelGroup);
+
+        // Position the group on top of the pedestal
+        modelGroup.position.y = envInfo.pedestalTopY;
+        // Z is controlled by params
+
+        function loadModel(modelName) {
+            const url = models[modelName];
+            if (!url) return;
+
+            // Clear existing
+            while (modelGroup.children.length > 0) {
+                modelGroup.remove(modelGroup.children[0]);
+            }
+
+            loader.load(url, (gltf) => {
+                const m = gltf.scene;
+
+                // Normalize size
+                const box = new THREE.Box3().setFromObject(m);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+
+                // Make it HUGE to feel like it's overflowing
+                // Fit to approx 22cm (Screen height is 20cm)
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fitScale = 22.0 / maxDim;
+
+                // Apply initial fit scale to the loaded model itself
+                m.scale.set(fitScale, fitScale, fitScale);
+
+                // Re-center locally
+                m.position.sub(center.multiplyScalar(fitScale));
+
+                modelGroup.add(m);
+
+                // Reset params if needed, or keep previous adjustment
+                // Let's reset rotation but keep z/scale if user tuned it? 
+                // Actually better to keep user params active.
+
+                m.traverse(c => {
+                    if (c.isMesh) {
+                        c.castShadow = true;
+                        c.receiveShadow = true;
+                    }
+                });
+
+                // Handle Animations
+                if (gltf.animations && gltf.animations.length > 0) {
+                    mixer = new THREE.AnimationMixer(m);
+                    gltf.animations.forEach((clip) => {
+                        mixer.clipAction(clip).play();
+                    });
+                } else {
+                    mixer = null;
+                }
+
+                updateModelTransform();
+
+            }, undefined, (err) => {
+                console.warn("Model load failed", err);
+            });
+        }
+
+        // Initial Load
+        loadModel(params.currentModel);
+        setupControls();
+
+
+        // --- Off-Axis Logic ---
+        function updateCamera(head) {
+            camera.position.copy(head);
+            const dist = head.z;
+            if (dist < 0.1) return;
+
+            const halfW = SCREEN_WIDTH_CM / 2;
+            const halfH = SCREEN_HEIGHT_CM / 2;
+            const scale = NEAR / dist;
+
+            const left = (-halfW - head.x) * scale;
+            const right = (halfW - head.x) * scale;
+            const bottom = (-halfH - head.y) * scale;
+            const top = (halfH - head.y) * scale;
+
+            camera.projectionMatrix.makePerspective(left, right, top, bottom, NEAR, FAR);
+        }
+
+        // --- Tracking ---
+        async function startTracking() {
+            try {
+                // FaceMesh and Camera are loaded globally via script tags
+                const video = document.getElementById('debug-video');
+                const canvas = document.getElementById('debug-canvas');
+                const ctx = canvas.getContext('2d');
+
+                const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+
+                faceMesh.setOptions({
+                    maxNumFaces: 1,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                faceMesh.onResults(results => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+                    if (results.multiFaceLandmarks.length > 0) {
+                        state.trackingActive = true;
+                        const lm = results.multiFaceLandmarks[0];
+                        const lIris = lm[468], rIris = lm[473]; // Iris centers
+
+                        if (lIris && rIris) {
+                            const cx = (lIris.x + rIris.x) / 2;
+                            const cy = (lIris.y + rIris.y) / 2;
+
+                            // Distance calc
+                            const dx = lIris.x - rIris.x;
+                            const dy = lIris.y - rIris.y;
+                            const dPx = Math.sqrt(dx * dx + dy * dy);
+
+                            // Tuned Calibration
+                            // If user is 60cm away, eyes ~0.1 normalized distance?
+                            // Let's approximate: z (cm) ~= CALIBRATION / dPx
+                            // CALIBRATION needs tuning.
+                            let z = 4.5 / dPx;
+                            z = THREE.MathUtils.clamp(z, 15, 120);
+
+                            // XY Mapping
+                            // 0.5 is center.
+                            // Sensitivity: How much head movement scales to world movement.
+                            const SENSITIVITY = 2.5;
+                            const wx = (0.5 - cx) * SCREEN_WIDTH_CM * SENSITIVITY;
+                            const wy = (0.5 - cy) * SCREEN_HEIGHT_CM * SENSITIVITY * 0.8; // Lower Y sensitivity
+
+                            // Constrain head to reasonable viewing box
+                            const LIMIT_X = 50;
+                            const LIMIT_Y = 50;
+
+                            state.targetHead.set(
+                                THREE.MathUtils.clamp(wx, -LIMIT_X, LIMIT_X),
+                                THREE.MathUtils.clamp(wy, -LIMIT_Y, LIMIT_Y),
+                                z
+                            );
+
+                            // Debug
+                            ctx.fillStyle = '#00ff00';
+                            ctx.beginPath();
+                            ctx.arc(cx * canvas.width, cy * canvas.height, 5, 0, 6.28);
+                            ctx.fill();
+                        }
+                    }
+                });
+
+                const mediapipeCamera = new Camera(video, {
+                    onFrame: async () => await faceMesh.send({ image: video }),
+                    width: 640,
+                    height: 480
+                });
+
+                await mediapipeCamera.start();
+
+                // Hide overlay on success
+                document.getElementById('overlay').style.display = 'none';
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Error starting camera: " + e.message;
+            }
+        }
+
+        // --- Interaction ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('status').innerText = "Initializing Camera & Models...";
+            startTracking();
+        });
+
+        // --- Loop ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Time & Delta
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            if (gridUniforms) {
+                gridUniforms.time.value = time * params.gridSpeed;
+            }
+
+            // Update Mixer
+            if (mixer) mixer.update(delta);
+
+            // Smoothing
+            const alpha = 0.1; // Smooth factor
+            state.head.lerp(state.targetHead, alpha);
+
+            updateCamera(state.head);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- Fullscreen Toggle ---
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('Fullscreen request failed:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreen-btn');
+            if (document.fullscreenElement) {
+                btn.textContent = '⛶ EXIT';
+            } else {
+                btn.textContent = '⛶ FULLSCREEN';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,26 @@
+# Ignore model files except default
+models/*
+!models/default/
+
+# System files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Editor directories
+.vscode/
+.idea/
+*.sublime-*
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
