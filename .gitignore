@@ -1,6 +1,7 @@
 # Ignore model files except default
 models/*
 !models/default/
+!models/d.s.s._harbinger_battle_cruiser/
 
 # System files
 .DS_Store
