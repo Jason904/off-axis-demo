@@ -27,7 +27,7 @@ Or run locally:
 
 ```bash
 # Clone the repository
-git clone https://cnb.cool/MindDockAI/off-axis-demo.git
+git clone https://github.com/MindDock/off-axis-demo.git
 cd off-axis-demo
 
 # Start a local server (Python 3)
@@ -150,7 +150,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📧 Contact
 
-Project Link: [https://cnb.cool/MindDockAI/off-axis-demo](https://cnb.cool/MindDockAI/off-axis-demo)
+Project Link: [https://github.com/MindDock/off-axis-demo](https://github.com/MindDock/off-axis-demo)
 
 ---
 

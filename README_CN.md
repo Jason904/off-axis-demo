@@ -27,7 +27,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://cnb.cool/MindDockAI/off-axis-demo.git
+git clone https://github.com/MindDock/off-axis-demo.git
 cd off-axis-demo
 
 # 启动本地服务器（Python 3）
@@ -150,7 +150,7 @@ const SENSITIVITY = 2.5;        // 头部追踪灵敏度
 
 ## 📧 联系方式
 
-项目链接：[https://cnb.cool/MindDockAI/off-axis-demo](off-axis-demo)
+项目链接：[https://github.com/MindDock/off-axis-demo](off-axis-demo)
 
 ---
 
