@@ -13,6 +13,12 @@ A real-time 3D head-tracking demo that creates a realistic "window into a virtua
 - **Model Animations**: Automatically plays GLTF animations (e.g., running horse)
 - **Interactive Controls**: Real-time adjustment of model position, scale, rotation, lighting, and effects
 
+## 📸 Preview
+
+![Demo Preview](./preview.gif)
+
+*The off-axis projection effect creates a realistic "window into a virtual world" - move your head to experience true 3D depth on a 2D screen!*
+
 ## 🎬 Demo
 
 Visit the live demo at: [Your Demo URL]
