@@ -111,6 +111,9 @@
     <!-- Fullscreen Button -->
     <button id="fullscreen-btn">⛶ FULLSCREEN</button>
 
+    <!-- Hidden Input for Model Upload -->
+    <input type="file" id="model-upload" accept=".glb,.gltf" style="display: none;">
+
     <!-- MediaPipe via traditional scripts (not ES modules) -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -129,6 +132,7 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
         // Global variables for controls
         let mainLight, ambientLight;
@@ -325,11 +329,23 @@
         };
         params.currentModel = 'Harbinger Cruiser';
 
+        let modelController; // Reference to the dropdown controller
+
         function setupControls() {
             const gui = new dat.GUI();
 
             const folderModel = gui.addFolder('Model Settings');
-            folderModel.add(params, 'currentModel', Object.keys(models)).name('Select Model').onChange(loadModel);
+            // Save reference to update later
+            modelController = folderModel.add(params, 'currentModel', Object.keys(models)).name('Select Model').onChange(loadModel);
+
+            // Add Upload Button
+            const uploadObj = {
+                upload: function () {
+                    document.getElementById('model-upload').click();
+                }
+            };
+            folderModel.add(uploadObj, 'upload').name('📂 Upload GLB/GLTF');
+
             folderModel.add(params, 'modelScale', 0.1, 5.0).name('Scale').onChange(updateModelTransform);
             folderModel.add(params, 'modelRotY', -Math.PI, Math.PI).name('Rotation Y').onChange(updateModelTransform);
             folderModel.add(params, 'modelZ', -50, 5).name('Position Z').onChange(updateModelTransform);
@@ -347,6 +363,87 @@
             folderLight.open();
         }
 
+        // --- File Upload Logic ---
+        document.getElementById('model-upload').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+
+            // Add special entry for custom model
+            const customName = 'Custom: ' + file.name;
+            models[customName] = url;
+
+            // Update params to match
+            params.currentModel = customName;
+
+            // Vital: Update the GUI dropdown options
+            // dat.GUI doesn't support dynamic options natively easily, 
+            // but we can cheat by removing and re-adding, or updating the inner property.
+            // The cleanest way in basic dat.GUI is to update the backing array if possible, 
+            // or just recreate the controller. Let's try the recreate approach for stability
+            // OR simpler: Just update the controller's internal list if we can.
+
+            // Standard dat.GUI hack to update options:
+            if (modelController) {
+                modelController = modelController.options(Object.keys(models));
+                modelController.name('Select Model'); // Reset name
+                modelController.onChange(loadModel); // Re-bind listener
+                modelController.setValue(customName); // Update UI display
+            }
+
+            loadModelFromURL(url);
+
+            // Optional: Alert user
+            console.log("Loaded custom model:", file.name);
+        });
+
+        function loadModelFromURL(url) {
+            // Clear existing
+            while (modelGroup.children.length > 0) {
+                modelGroup.remove(modelGroup.children[0]);
+            }
+
+            loader.load(url, (gltf) => {
+                const m = gltf.scene;
+
+                // Normalize size
+                const box = new THREE.Box3().setFromObject(m);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fitScale = 22.0 / maxDim; // Fit to 22cm
+
+                m.scale.set(fitScale, fitScale, fitScale);
+                m.position.sub(center.multiplyScalar(fitScale));
+
+                modelGroup.add(m);
+
+                m.traverse(c => {
+                    if (c.isMesh) {
+                        c.castShadow = true;
+                        c.receiveShadow = true;
+                    }
+                });
+
+                if (gltf.animations && gltf.animations.length > 0) {
+                    mixer = new THREE.AnimationMixer(m);
+                    gltf.animations.forEach((clip) => {
+                        mixer.clipAction(clip).play();
+                    });
+                } else {
+                    mixer = null;
+                }
+
+                updateModelTransform();
+
+            }, undefined, (err) => {
+                console.warn("Model load failed", err);
+                alert("Errod loading model: " + err.message);
+            });
+        }
+
         // Helper to apply params
         function updateModelTransform() {
             if (!modelGroup || modelGroup.children.length === 0) return;
@@ -360,6 +457,12 @@
         }
 
         const loader = new GLTFLoader();
+
+        // Setup Draco Loader
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+        loader.setDRACOLoader(dracoLoader);
+
         let modelGroup = new THREE.Group();
         scene.add(modelGroup);
 
