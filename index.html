@@ -349,6 +349,64 @@
             transform: rotate(90deg);
         }
 
+        /* Settings Button */
+        #settings-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 90px;
+            /* 30 + 60 */
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 10, 20, 0.8);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        #settings-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+            transform: rotate(90deg);
+        }
+
+        /* Sound Button - Left of Settings */
+        #sound-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 150px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 10, 20, 0.8);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        #sound-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+
         /* Help Modal */
         #help-modal {
             display: none;
@@ -360,6 +418,20 @@
             background: rgba(0, 0, 0, 0.85);
             z-index: 2001;
             /* Above everything */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Settings Modal logic same as Help */
+        #settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2001;
             align-items: center;
             justify-content: center;
         }
@@ -406,12 +478,14 @@
             </div>
 
             <div id="status" style="margin-top:20px; color:#aaa; font-size:12px;">等待生物体接入...</div>
-            <button id="start-btn">>> 启动全息投影 <<</button>
+            <button id="start-btn">>> 启动全息投影 <<< /button>
         </div>
     </div>
 
     <!-- Buttons -->
     <button id="help-btn" title="查看操作手册">?</button>
+    <button id="settings-btn" title="系统参数配置">⚙</button>
+    <button id="sound-btn" title="声音开关">🔊</button>
 
     <!-- Help Modal -->
     <div id="help-modal">
@@ -434,6 +508,18 @@
             </div>
 
             <button class="close-help" onclick="document.getElementById('help-modal').style.display='none'">[ 关闭
+                ]</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal">
+        <div class="monitor-frame">
+            <h1>系统参数</h1>
+            <p style="color:#ccc; font-size:14px; margin-top:20px;">
+                此处将显示dat.GUI控制面板。
+            </p>
+            <button class="close-help" onclick="document.getElementById('settings-modal').style.display='none'">[ 关闭
                 ]</button>
         </div>
     </div>
@@ -461,6 +547,9 @@
     <!-- dat.gui for controls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
 
+    <!-- Audio Manager -->
+    <script src="js/audio-manager.js"></script>
+
     <script type="importmap">
         {
             "imports": {
@@ -474,6 +563,15 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+        // Initialize Audio Manager
+        const audioMgr = new AudioManager();
+
+        // Attach UI Sounds to all buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mouseenter', () => audioMgr.playHover());
+            btn.addEventListener('mousedown', () => audioMgr.playClick());
+        });
 
         // Global variables for controls
         let mainLight, ambientLight;
@@ -511,7 +609,8 @@
             targetLightPos: new THREE.Vector3(0, 20, 10), // Target from hand
             lightIntensity: 5000,
             targetLightIntensity: 5000,
-            handDetected: false
+            handDetected: false,
+            prevHandDetected: false // To detect state changes for audio
         };
 
         // --- Setup Three.js ---
@@ -989,9 +1088,17 @@
 
                 hands.onResults(results => {
                     // Logic to update Light State
+                    state.prevHandDetected = state.handDetected; // Store previous state
+
                     if (results.multiHandLandmarks.length > 0) {
                         state.handDetected = true;
                         handCursor.style.display = 'block';
+
+                        // Audio: Power Up Effect if just detected
+                        if (!state.prevHandDetected) {
+                            audioMgr.playPowerUp();
+                            audioMgr.startRepulsorHum();
+                        }
 
                         const lm = results.multiHandLandmarks[0];
 
@@ -1077,6 +1184,12 @@
                         state.handDetected = false;
                         handCursor.style.display = 'none';
 
+                        // Audio: Power Down Effect if just lost
+                        if (state.prevHandDetected) {
+                            audioMgr.playPowerDown();
+                            audioMgr.stopRepulsorHum();
+                        }
+
                         // SAFETY FALLBACK:
                         // If tracking lost, FADE TO BLACK (as requested).
                         // Hand gone = Light gone.
@@ -1114,6 +1227,10 @@
 
         // --- Interaction ---
         document.getElementById('start-btn').addEventListener('click', () => {
+            // Audio Init (Unmute)
+            audioMgr.init();
+            audioMgr.playStartup();
+
             document.getElementById('status').innerText = "Initializing Camera & Models...";
             startTracking();
         });
@@ -1194,6 +1311,21 @@
         document.getElementById('help-btn').addEventListener('click', () => {
             const modal = document.getElementById('help-modal');
             modal.style.display = 'flex'; // Use flex to center
+        });
+
+        // Toggle Settings
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = 'flex';
+        });
+
+        // Toggle Sound
+        document.getElementById('sound-btn').addEventListener('click', (e) => {
+            // Init if needed (e.g. user clicked mute before start)
+            audioMgr.init();
+
+            const isMuted = audioMgr.toggleMute();
+            e.target.innerText = isMuted ? '🔇' : '🔊';
         });
     </script>
 </body>
