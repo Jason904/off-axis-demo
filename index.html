@@ -90,15 +90,352 @@
         #fullscreen-btn:hover {
             background: rgba(0, 255, 255, 0.4);
         }
+
+        /* Iron Man Cursor */
+        #hand-cursor {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 5px #00ffff;
+            pointer-events: none;
+            z-index: 2000;
+            transform: translate(-50%, -50%);
+            display: none;
+            /* Hidden by default until hand detected */
+            transition: opacity 0.2s;
+        }
+
+        #hand-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- New UI: Mission Briefing & Help --- */
+        .monitor-frame {
+            border: 1px solid #00ffff;
+            padding: 40px;
+            background: rgba(0, 10, 20, 0.95);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 50px rgba(0, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            max-width: 650px;
+            width: 90%;
+            font-family: 'Courier New', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Scanline effect */
+        .monitor-frame::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .monitor-frame h1 {
+            border-bottom: 2px solid #00ffff;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            font-size: 28px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #00ffff;
+            text-transform: uppercase;
+        }
+
+        .monitor-frame h1 small {
+            font-size: 14px;
+            opacity: 0.7;
+            display: block;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .cap-item {
+            display: flex;
+            align-items: center;
+            margin: 18px 0;
+            text-align: left;
+            padding: 12px 20px;
+            background: linear-gradient(90deg, rgba(0, 255, 255, 0.1), transparent);
+            border-left: 4px solid #00ffff;
+            transition: all 0.3s;
+        }
+
+        .cap-item:hover {
+            background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), transparent);
+            transform: translateX(10px);
+        }
+
+        .cap-item .icon {
+            font-size: 24px;
+            margin-right: 20px;
+            min-width: 30px;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        .cap-item .label {
+            color: #00ffff;
+            font-weight: bold;
+            margin-right: 15px;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .cap-item .desc {
+            color: #ccc;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #start-btn {
+            background: transparent;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            padding: 15px 60px;
+            font-size: 20px;
+            font-family: 'Courier New', 'PingFang SC', sans-serif;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin-top: 40px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            transition: all 0.3s;
+            position: relative;
+            z-index: 10;
+            text-transform: uppercase;
+        }
+
+        #start-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+            transform: scale(1.02);
+        }
+
+
+
+        /* --- Cyberpunk dat.GUI Theme --- */
+        .dg.ac {
+            z-index: 9999 !important;
+        }
+
+        /* Main Container */
+        .dg.main {
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Folder Titles */
+        .dg ul .title {
+            background-color: rgba(0, 20, 30, 0.95) !important;
+            border-bottom: 1px solid #00ffff !important;
+            color: #fff !important;
+            text-shadow: none !important;
+            font-family: 'Courier New', sans-serif !important;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Rows */
+        .dg .cr.function,
+        .dg .cr.boolean,
+        .dg .cr.string,
+        .dg .cr.number {
+            background-color: rgba(0, 10, 20, 0.9) !important;
+            border-left: 4px solid #00ffff;
+            /* The left accent bar */
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        /* Alternating rows slightly lighter? No, keep uniform dark for tech look */
+
+        /* Labels */
+        .dg .c .label {
+            color: #ccc !important;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif !important;
+            font-size: 12px;
+            text-shadow: none !important;
+        }
+
+        /* Input Fields (Text/Number) */
+        .dg .c input[type=text] {
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            color: #00ffff !important;
+            border: 1px solid rgba(0, 255, 255, 0.3) !important;
+            border-radius: 2px;
+        }
+
+        .dg .c input[type=text]:focus {
+            outline: none;
+            border-color: #00ffff !important;
+            box-shadow: 0 0 5px #00ffff;
+        }
+
+        /* Sliders Background */
+        .dg .c .slider {
+            background-color: #111 !important;
+            border: 1px solid #333;
+            border-radius: 2px;
+        }
+
+        /* Slider Handle (Foreground) */
+        .dg .c .slider-fg {
+            background-color: #00ffff !important;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+            border-radius: 1px;
+        }
+
+        .dg .c .slider:hover .slider-fg {
+            background-color: #fff !important;
+        }
+
+        /* Close Button */
+        .dg .close-button {
+            background-color: #000 !important;
+            color: #00ffff !important;
+            border: 1px solid #00ffff;
+            text-align: center;
+        }
+
+        .dg .close-button:hover {
+            background-color: #00ffff !important;
+            color: #000 !important;
+        }
+
+        /* Persistent Help Button - Moved to Bottom Right */
+        #help-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 10, 20, 0.8);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2000;
+            display: flex;
+            /* Flex center */
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        #help-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+            transform: rotate(90deg);
+        }
+
+        /* Help Modal */
+        #help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2001;
+            /* Above everything */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Close btn for modal */
+        .close-help {
+            margin-top: 20px;
+            background: transparent;
+            border: 1px solid #aaa;
+            color: #aaa;
+            padding: 5px 20px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .close-help:hover {
+            border-color: #fff;
+            color: #fff;
+        }
     </style>
 </head>
 
 <body>
 
+    <div id="canvas-container"></div>
+
     <div id="overlay">
-        <h1>Off-Axis 3D Demo</h1>
-        <div id="status">Needs webcam access to track your head position.</div>
-        <button id="start-btn">ENTER 3D VIEW</button>
+        <div class="monitor-frame">
+            <h1>系统就绪</h1>
+
+            <div class="capabilities-list">
+                <div class="cap-item">
+                    <span class="icon">🧠</span>
+                    <div><span class="label">视差校准系统:</span> <span class="desc">全息头部追踪已激活</span></div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">✋</span>
+                    <div><span class="label">光子交互阵列:</span> <span class="desc">手部动态光源控制</span></div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">✊</span>
+                    <div><span class="label">信令识别模块:</span> <span class="desc">握拳待机 / 张手充能</span></div>
+                </div>
+            </div>
+
+            <div id="status" style="margin-top:20px; color:#aaa; font-size:12px;">等待生物体接入...</div>
+            <button id="start-btn">>> 启动全息投影 <<</button>
+        </div>
+    </div>
+
+    <!-- Buttons -->
+    <button id="help-btn" title="查看操作手册">?</button>
+
+    <!-- Help Modal -->
+    <div id="help-modal">
+        <div class="monitor-frame">
+            <h1>操作手册</h1>
+
+            <div class="capabilities-list">
+                <div class="cap-item">
+                    <span class="icon">👁️</span>
+                    <div><span class="label">全息视角:</span> <span class="desc">移动头部以改变观察角度。</span></div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">✋</span>
+                    <div><span class="label">光源牵引:</span> <span class="desc">举起右手移动以控制光照点。</span></div>
+                </div>
+                <div class="cap-item">
+                    <span class="icon">🤏</span>
+                    <div><span class="label">纵深控制:</span> <span class="desc">前后移动手掌控制光源距离。</span></div>
+                </div>
+            </div>
+
+            <button class="close-help" onclick="document.getElementById('help-modal').style.display='none'">[ 关闭
+                ]</button>
+        </div>
     </div>
 
     <!-- Hidden video for processing -->
@@ -106,16 +443,20 @@
     <!-- Visual feedback of tracking -->
     <canvas id="debug-canvas"></canvas>
 
-    <div id="canvas-container"></div>
+
 
     <!-- Fullscreen Button -->
-    <button id="fullscreen-btn">⛶ FULLSCREEN</button>
+    <button id="fullscreen-btn">⛶ 全屏模式</button>
+
+    <!-- Iron Man Cursor -->
+    <div id="hand-cursor"></div>
 
     <!-- Hidden Input for Model Upload -->
     <input type="file" id="model-upload" accept=".glb,.gltf" style="display: none;">
 
     <!-- MediaPipe via traditional scripts (not ES modules) -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <!-- dat.gui for controls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
@@ -141,10 +482,10 @@
         // --- GUI Controls ---
         const params = {
             currentModel: 'Harbinger Cruiser',
-            modelScale: 1.3,
-            modelRotY: 1.0,
-            modelZ: 5.0,
-            modelY: 9.0, // Added Y control
+            scale: 1.3,
+            rotationY: 1.0,
+            positionZ: 5.0,
+            positionY: 9.0, // Added Y control
             lightIntensity: 5000,
             ambientIntensity: 5.0,
             gridSpeed: 5.0
@@ -164,7 +505,13 @@
         const state = {
             head: new THREE.Vector3(0, 0, DEFAULT_HEAD_Z),
             targetHead: new THREE.Vector3(0, 0, DEFAULT_HEAD_Z),
-            trackingActive: false
+            trackingActive: false,
+            // Iron Man Light State
+            lightPos: new THREE.Vector3(0, 20, 10), // Current smoothed pos
+            targetLightPos: new THREE.Vector3(0, 20, 10), // Target from hand
+            lightIntensity: 5000,
+            targetLightIntensity: 5000,
+            handDetected: false
         };
 
         // --- Setup Three.js ---
@@ -329,14 +676,18 @@
         };
         params.currentModel = 'Harbinger Cruiser';
 
-        let modelController; // Reference to the dropdown controller
-
+        let modelController;        // Initialize Controls (Hidden by Default, in Modal)
         function setupControls() {
+            // Restore Floating GUI
             const gui = new dat.GUI();
+            // Hide initially (will show on start)
+            gui.domElement.parentElement.style.display = 'none';
 
-            const folderModel = gui.addFolder('Model Settings');
+            const folderModel = gui.addFolder('模型配置');
+            folderModel.open();
+
             // Save reference to update later
-            modelController = folderModel.add(params, 'currentModel', Object.keys(models)).name('Select Model').onChange(loadModel);
+            modelController = folderModel.add(params, 'currentModel', Object.keys(models)).name('选择模型').onChange(loadModel);
 
             // Add Upload Button
             const uploadObj = {
@@ -344,23 +695,29 @@
                     document.getElementById('model-upload').click();
                 }
             };
-            folderModel.add(uploadObj, 'upload').name('📂 Upload GLB/GLTF');
+            folderModel.add(uploadObj, 'upload').name('📂 载入本地文件');
 
-            folderModel.add(params, 'modelScale', 0.1, 5.0).name('Scale').onChange(updateModelTransform);
-            folderModel.add(params, 'modelRotY', -Math.PI, Math.PI).name('Rotation Y').onChange(updateModelTransform);
-            folderModel.add(params, 'modelZ', -50, 5).name('Position Z').onChange(updateModelTransform);
-            folderModel.add(params, 'modelY', -20, 20).name('Position Y').onChange(updateModelTransform);
-            folderModel.open();
+            // Model Transform
+            folderModel.add(params, 'scale', 0.1, 3).name('缩放比例').onChange(updateModelTransform);
+            folderModel.add(params, 'rotationY', -3.14, 3.14).name('Y轴旋转').onChange(updateModelTransform);
+            folderModel.add(params, 'positionZ', -10, 10).name('Z轴位移').onChange(updateModelTransform);
+            folderModel.add(params, 'positionY', -10, 20).name('Y轴位移').onChange(updateModelTransform);
 
-            const folderLight = gui.addFolder('Lighting');
-            folderLight.add(params, 'lightIntensity', 0, 10000).name('Spot Intensity').onChange(val => {
-                if (mainLight) mainLight.intensity = val;
+            const folderLight = gui.addFolder('光照系统');
+            folderLight.open();
+            // params.lightIntensity is used as the "Max" intensity in Iron Man mode
+            folderLight.add(params, 'lightIntensity', 0, 10000).name('核心亮度').onChange(val => {
+                if (mainLight && !state.handDetected) {
+                    mainLight.intensity = val;
+                }
             });
-            folderLight.add(params, 'ambientIntensity', 0, 10).name('Ambient').onChange(val => {
+            folderLight.add(params, 'ambientIntensity', 0, 10).name('环境光').onChange(val => {
                 if (ambientLight) ambientLight.intensity = val;
             });
-            folderLight.add(params, 'gridSpeed', 0, 5.0).name('Grid Speed');
-            folderLight.open();
+
+            const folderEnv = gui.addFolder('环境参数');
+            folderEnv.open();
+            folderEnv.add(params, 'gridSpeed', 0, 20).name('网格流速');
         }
 
         // --- File Upload Logic ---
@@ -387,7 +744,7 @@
             // Standard dat.GUI hack to update options:
             if (modelController) {
                 modelController = modelController.options(Object.keys(models));
-                modelController.name('Select Model'); // Reset name
+                modelController.name('选择模型'); // Reset name
                 modelController.onChange(loadModel); // Re-bind listener
                 modelController.setValue(customName); // Update UI display
             }
@@ -449,11 +806,11 @@
             if (!modelGroup || modelGroup.children.length === 0) return;
 
             // We apply scale to the group, which contains the gltf model
-            modelGroup.scale.set(params.modelScale, params.modelScale, params.modelScale);
+            modelGroup.scale.set(params.scale, params.scale, params.scale);
 
-            modelGroup.rotation.y = params.modelRotY;
-            modelGroup.position.z = params.modelZ;
-            modelGroup.position.y = params.modelY + envInfo.pedestalTopY;
+            modelGroup.rotation.y = params.rotationY;
+            modelGroup.position.z = params.positionZ;
+            modelGroup.position.y = params.positionY + envInfo.pedestalTopY;
         }
 
         const loader = new GLTFLoader();
@@ -619,8 +976,123 @@
                     }
                 });
 
+                // --- HAND TRACKING SETUP ---
+                const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+                hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.5,
+                    minTrackingConfidence: 0.5
+                });
+
+                const handCursor = document.getElementById('hand-cursor');
+
+                hands.onResults(results => {
+                    // Logic to update Light State
+                    if (results.multiHandLandmarks.length > 0) {
+                        state.handDetected = true;
+                        handCursor.style.display = 'block';
+
+                        const lm = results.multiHandLandmarks[0];
+
+                        // 1. Palm Center (Approximate with wrist + middle finger base)
+                        // Landmark 0: Wrist, 9: Middle Finger MCP
+                        const wrist = lm[0];
+                        const middleMCP = lm[9];
+                        const cx = (wrist.x + middleMCP.x) / 2;
+                        const cy = (wrist.y + middleMCP.y) / 2;
+
+                        // 2. Cursor Update (Invert X for mirror effect)
+                        // Canvas is scaleX(-1) so visual feedback needs careful handling.
+                        // Actually, if we use CSS left/top on screen coordinates:
+                        // MediaPipe x is 0-1 (normalized). 
+                        // If video is mirrored: x=0 is right, x=1 is left.
+                        // Let's just map directly to screen pixels.
+
+                        // NOTE: If we want "Mirror" feel: Moving hand RIGHT (your right) should go to screen RIGHT.
+                        // In video stream, right hand moving right appears on LEFT side of image?
+                        // Let's assume standard mirror behavior.
+
+                        const screenX = (1.0 - cx) * window.innerWidth;
+                        const screenY = cy * window.innerHeight;
+
+                        handCursor.style.transform = `translate(${screenX}px, ${screenY}px)`;
+
+
+                        // 3. Map to 3D Light Position
+                        // Scene width ~30cm. 
+                        // Map 0..1 to -20..20 approx?
+                        const mapRange = (val, inMin, inMax, outMin, outMax) => {
+                            return (val - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+                        };
+
+                        const targetX = mapRange(1.0 - cx, 0, 1, -25, 25);
+                        const targetY = mapRange(cy, 0, 1, 15, -15); // Top (0) is high Y (+15)
+
+                        // 4. Depth (Z) from Hand Size
+                        // Distance between Wrist(0) and Middle Finger TIP(12) or MCP(9)
+                        // Larger distance = Closer hand
+                        const dx = wrist.x - middleMCP.x;
+                        const dy = wrist.y - middleMCP.y;
+                        const handSize = Math.sqrt(dx * dx + dy * dy); // usually 0.1 to 0.3
+
+                        // Size 0.2 -> Z = 10 (Close)
+                        // Size 0.05 -> Z = -10 (Far)
+                        // Let's tune:
+                        let targetZ = mapRange(handSize, 0.05, 0.25, -20, 20);
+                        targetZ = THREE.MathUtils.clamp(targetZ, -30, 30);
+
+                        state.targetLightPos.set(targetX, targetY, targetZ);
+
+
+                        // 5. Gesture (Fist vs Open) -> Switch
+                        // Optimized Logic: Distance Ratio of Index Finger
+                        // Ratio = Dist(Wrist, Tip8) / Dist(Wrist, MCP5)
+                        // Open Hand: Ratio > 1.6 usually.
+                        // Fist: Ratio < 1.3 usually.
+
+                        const tip = lm[8];
+                        const base = lm[5];
+                        const dTip = Math.sqrt(Math.pow(tip.x - wrist.x, 2) + Math.pow(tip.y - wrist.y, 2));
+                        const dMCP = Math.sqrt(Math.pow(base.x - wrist.x, 2) + Math.pow(base.y - wrist.y, 2));
+
+                        // Avoid divide by zero
+                        const ratio = (dMCP > 0.001) ? (dTip / dMCP) : 0;
+
+                        // Lower threshold to favor "Open" (Light ON)
+                        // If it's ambiguous, we want Light ON.
+                        if (ratio < 1.1) {
+                            // FIST / CLOSED
+                            state.targetLightIntensity = 100; // Dim
+                            handCursor.style.borderColor = '#ff0000';
+                            handCursor.style.boxShadow = '0 0 10px #ff0000, inset 0 0 5px #ff0000';
+                        } else {
+                            // OPEN -> Use GUI setting as Max Intensity
+                            state.targetLightIntensity = params.lightIntensity;
+                            handCursor.style.borderColor = '#00ffff';
+                            handCursor.style.boxShadow = '0 0 10px #00ffff, inset 0 0 5px #00ffff';
+                        }
+
+                    } else {
+                        state.handDetected = false;
+                        handCursor.style.display = 'none';
+
+                        // SAFETY FALLBACK:
+                        // If tracking lost, FADE TO BLACK (as requested).
+                        // Hand gone = Light gone.
+                        state.targetLightIntensity = 0;
+                    }
+                });
+
+                // Start Hands too!
+                // NOTE: Camera utility only accepts ONE onFrame. We need to chain them.
+                // Or: execute both send() in the single onFrame.
+
                 const mediapipeCamera = new Camera(video, {
-                    onFrame: async () => await faceMesh.send({ image: video }),
+                    onFrame: async () => {
+                        await faceMesh.send({ image: video });
+                        await hands.send({ image: video });
+                    },
                     width: 640,
                     height: 480
                 });
@@ -629,6 +1101,10 @@
 
                 // Hide overlay on success
                 document.getElementById('overlay').style.display = 'none';
+
+                // Show Settings Panel (dat.GUI)
+                const guiContainer = document.querySelector('.dg.ac');
+                if (guiContainer) guiContainer.style.display = 'block';
 
             } catch (e) {
                 console.error(e);
@@ -662,6 +1138,29 @@
             const alpha = 0.1; // Smooth factor
             state.head.lerp(state.targetHead, alpha);
 
+            // Iron Man Light Smoothing
+            // ALWAYS run intensity smoothing
+
+            const lightAlpha = 0.15;
+            if (state.handDetected) {
+                // Tracking Hand
+                state.lightPos.lerp(state.targetLightPos, lightAlpha);
+            } else {
+                // LOST TRACKING -> Auto-Return to Center (Drift back)
+                // This fixes the "Loophole" where light gets stuck at edge if hand exits quickly.
+                const defaultPos = new THREE.Vector3(0, 20, 10);
+                state.lightPos.lerp(defaultPos, 0.02); // Very slow, graceful return
+            }
+
+            // Intensity LERP
+            state.lightIntensity += (state.targetLightIntensity - state.lightIntensity) * 0.1;
+
+            // Apply to scene
+            if (mainLight) {
+                mainLight.position.copy(state.lightPos);
+                mainLight.intensity = state.lightIntensity;
+            }
+
             updateCamera(state.head);
             renderer.render(scene, camera);
         }
@@ -685,10 +1184,16 @@
         document.addEventListener('fullscreenchange', () => {
             const btn = document.getElementById('fullscreen-btn');
             if (document.fullscreenElement) {
-                btn.textContent = '⛶ EXIT';
+                btn.textContent = '⛶ 退出全屏';
             } else {
-                btn.textContent = '⛶ FULLSCREEN';
+                btn.textContent = '⛶ 全屏模式';
             }
+        });
+
+        // Toggle Help
+        document.getElementById('help-btn').addEventListener('click', () => {
+            const modal = document.getElementById('help-modal');
+            modal.style.display = 'flex'; // Use flex to center
         });
     </script>
 </body>
